@@ -1,7 +1,8 @@
 /// Advent of Code 2021 project 01. 
 /// Daniel T. 2021-12-01
-/// Goal:  How many measurements are larger than the previous messurement?
-/// 
+/// Part 1 Goal:  How many measurements are larger than the previous messurement?
+/// Part 2 Goal: the number of times the sum of measurements in a 3 part sliding
+/// window increased. 
 
 use std::env;
 use std::fs;
@@ -47,8 +48,41 @@ fn main() {
         previous = *current;
     }
 
+    // start part2 calculations
+    let mut prev_window_sum: i32 = 0; // store previous window sum
+    let mut window_increases: i32 = 0;
+    let mut window_decreases: i32 = 0;
+    // sliding window for calculations
+    let mut window: std::collections::VecDeque<i32> = std::collections::VecDeque::new();
+    // loop through and process values while looping
+    let measurements_iter = measurements.iter(); // re-assign to work again
+    for current in measurements_iter {
+        window.push_back(*current);
+        if window.len() == 3 {
+            // correct window size calculate sum
+            let sum: i32 = window.iter().sum();
+            if prev_window_sum == 0 {
+                prev_window_sum = sum;
+            }
+            println!("[{},{},{}] - {}", window[0],window[1],window[2], sum);
+            if sum > prev_window_sum {
+                window_increases = window_increases + 1;
+                println!("Window increase");
+            }
+            else if sum < prev_window_sum {
+                window_decreases = window_decreases + 1;
+                println!("window decrease");
+            }
+            
+            prev_window_sum = sum;
+            // pop so len goes back to 2 (remove the old value)
+            window.pop_front();
+        }
+    }
+
     println!("Completed!");
     println!("Increases: {} ; Descreases: {}", increases, decreases);
+    println!("Part 2 (sliding window): Increases: {} ; Decreases: {}", window_increases, window_decreases);
 }
 
 
