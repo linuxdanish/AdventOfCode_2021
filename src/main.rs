@@ -61,6 +61,7 @@ fn main() {
         if window.len() == 3 {
             // correct window size calculate sum
             let sum: i32 = window.iter().sum();
+            // need to catch our first time through before we set the first window
             if prev_window_sum == 0 {
                 prev_window_sum = sum;
             }
