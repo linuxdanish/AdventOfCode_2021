@@ -3,3 +3,14 @@
 [[package]]
 name = "aoc_2021_01"
 version = "0.1.0"
+
+[[package]]
+name = "aoc_2021_02"
+version = "0.1.0"
+dependencies = [
+ "file-input",
+]
+
+[[package]]
+name = "file-input"
+version = "0.1.0"
