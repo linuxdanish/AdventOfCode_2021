@@ -24,6 +24,8 @@ fn main() {
     let content: Vec<String> = file_input::file_contents_as_vec(filename)
         .expect("Failed to open input file");
 
+    // closure for parsing a string into a tuple of string + int. 
+    // why this rather than a function?
     let parser = | x: &str | ->(String, i32) {
         let split_stuff: Vec<&str> = x.split(' ').collect();
         let command = str::to_owned(split_stuff[0]);
@@ -35,16 +37,14 @@ fn main() {
         return (command, num);
     };
 
-    // reset for part 2.2
-    // Try a more rusty way
+    // create a vector of tuple pairs
     let parsed_content: Vec<(String,i32)> = content.iter().map(|x| 
         parser(x)).collect();
 
+    // part 2.1 loop with it's ugly state.
     let mut position: i32 = 0;
     let mut depth: i32 = 0;
-    for command in &parsed_content {
-        // Honestly this feels a little wasteful in assignments, but oh well
-        
+    for command in &parsed_content {        
         match command.0.as_str() {
             "forward" => { position = position + command.1 },
             "down" => { depth = depth + command.1 },
@@ -56,7 +56,7 @@ fn main() {
     let position_vector: i32 = position * depth;
 
 
-
+    // part 2.2 will use structs.
     let mut current_pos: SubPosition = SubPosition {
         depth: 0,
         aim: 0,
