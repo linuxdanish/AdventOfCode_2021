@@ -6,9 +6,14 @@
 ///                all input numbers
 ///                Epsilon is the least common bit value in each position
 ///                of all inpt numbers
+/// Part3.2 Goal: Find a singular number as the result of a closing mask window
+///               the criteria for each successive progression of the window will
+///               be: Oxygen (most common, rounding to 1); Co2 (least common rounding to 0)
+///
 
 use std::env;
 use file_input;
+use b_tree_lib;
 
 
 fn main() {
@@ -50,6 +55,55 @@ fn main() {
 
     // final power for part 3.1
     let power = gamma * epsilon;
+
+    // Part3.2 going to just re-perform the tree building here as a seperate part 
+    // of this solution so as to not muddy part 1.
+    let mut tree_head: Box<b_tree_lib::Node<char>> = Box::new(b_tree_lib::Node::new('+'));
+    for line in content.iter() {
+        // reset cur_head to the head of our tree
+        let mut cur_head = &mut tree_head;
+        for character in line.chars() {
+            match character { // decide whch path to take '0' = l, '1' = r
+                '1' => {
+                    // check if next node already exists, if not, then wee have to add it.
+                    match &cur_head.r {
+                        Some(_x) => {
+                            // cur_head.r exists, we move into it and increase it's visit count
+                            cur_head = cur_head.r.as_mut().unwrap();
+                            cur_head.count = cur_head.count + 1;
+                        },
+                        None => {
+                            let new_node: Box<b_tree_lib::Node<char>> = Box::new(b_tree_lib::Node::new('1'));
+                            cur_head.r = Some(new_node);
+                        }
+                    }
+                },
+                '0' => {
+                    // repeat for the left node if is a 0
+                    match &cur_head.l {
+                        Some(_x) => {
+                            // cur_head.l exists, we move into it an increase it's visit count
+                            cur_head = cur_head.l.as_mut().unwrap();
+                            cur_head.count = cur_head.count +1;
+                        },
+                        None => {
+                            let new_node: Box<b_tree_lib::Node<char>> = Box::new(b_tree_lib::Node::new('0'));
+                            cur_head.l = Some(new_node);
+                        }
+                    }
+                },
+                _ => {}
+            }
+        }
+    }
+
+    // We now need to perform out two searches across the binary tree. 
+    let mut oxy: Vec<char> = Vec::new();
+    let mut cur_head = &mut tree_head;
+    // start our loop through until we reach a leaf.
+    while cur_head.l.is_some() || cur_head.r.is_some() {
+
+    }
 
     println!("Complete!");
     println!("Part 3.1: Gamma: {}, Epsilon {}, Power: {}",gamma,epsilon,power);

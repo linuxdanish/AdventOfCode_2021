@@ -4,4 +4,5 @@ members = [
     "aoc_2021_01",
     "aoc_2021_02",
     "aoc_2021_03",
+    "b_tree_lib",
 ]

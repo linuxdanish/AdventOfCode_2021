@@ -17,8 +17,13 @@ dependencies = [
 name = "aoc_2021_03"
 version = "0.1.0"
 dependencies = [
+ "b_tree_lib",
  "file-input",
 ]
+
+[[package]]
+name = "b_tree_lib"
+version = "0.1.0"
 
 [[package]]
 name = "file-input"
