@@ -75,6 +75,7 @@ fn main() {
                         None => {
                             let new_node: Box<b_tree_lib::Node<char>> = Box::new(b_tree_lib::Node::new('1'));
                             cur_head.r = Some(new_node);
+                            cur_head = cur_head.r.as_mut().unwrap();
                         }
                     }
                 },
@@ -89,6 +90,7 @@ fn main() {
                         None => {
                             let new_node: Box<b_tree_lib::Node<char>> = Box::new(b_tree_lib::Node::new('0'));
                             cur_head.l = Some(new_node);
+                            cur_head = cur_head.l.as_mut().unwrap();
                         }
                     }
                 },
@@ -98,18 +100,74 @@ fn main() {
     }
 
     // We now need to perform out two searches across the binary tree. 
-    let mut oxy: Vec<char> = Vec::new();
-    let mut cur_head = &mut tree_head;
-    // start our loop through until we reach a leaf.
-    while cur_head.l.is_some() || cur_head.r.is_some() {
+    let oxy_selector = |zeros, ones| { 
+        if ones >= zeros {
+            1
+        } else {
+            0
+        }
+    };
 
-    }
+    let oxy_value_str = retrieve_tree_path(&mut tree_head, oxy_selector);
+
+    let co2_selector = |zeros, ones| {
+        if zeros <= ones {
+            if zeros > 0 {
+                0
+            } else {
+                1
+            }
+        }else {
+            if ones > 0 {
+                1
+            }else {
+                0
+            }
+        }
+    };
+
+    let co2_value_str = retrieve_tree_path(&mut tree_head, co2_selector);
+    // convert my strings to decimal from base 2 and get final values
+    let oxy_value = i32::from_str_radix(&oxy_value_str,2).expect("Failed to convert oxygen value to int");
+    let co2_value = i32::from_str_radix(&co2_value_str,2).expect("Failed to convert co2 value to int");
+    let life_support = oxy_value * co2_value;
 
     println!("Complete!");
     println!("Part 3.1: Gamma: {}, Epsilon {}, Power: {}",gamma,epsilon,power);
+    println!("Part 3.2: Oxygen gen rating: {}; co2 scrubber rating: {}; Life support rating {}", oxy_value,co2_value,life_support);
         
 }
 
+fn retrieve_tree_path<F: Fn(i32,i32)->i32>(tree: &Box<b_tree_lib::Node<char>>, selector: F) -> String {
+    let mut cur_head = tree;
+    let mut chars: Vec<char> = Vec::new();
+    // walk the tree until we hit the bottom
+    while cur_head.l.as_ref().is_some() || cur_head.r.as_ref().is_some() {
+        // retrieve left and right counts of sub nodes
+        let lcount = if cur_head.l.is_some() {
+            cur_head.l.as_ref().expect("Failed to unwrap cur_head.l count").count
+        } else {
+            0
+        };
+
+        let rcount = if cur_head.r.is_some() {
+            cur_head.r.as_ref().expect("Failed to unwrap cur_head.r count").count
+        } else {
+            0
+        };
+        
+        // Decide which way to traverse. We will go left on '0' right on '1'
+        if selector(lcount, rcount) == 1 {
+            cur_head = cur_head.r.as_ref().expect("Failed to unwrap cur_head.r");
+        } else {
+            cur_head = cur_head.l.as_ref().expect("Failed to unwrap cur_head.l");
+        };
+        // extract the new char value and add it to our vector.cur_head
+        chars.push(*cur_head.value);
+    }
+
+    return chars.into_iter().collect::<String>();
+}
 
 #[allow(unused)]
 #[derive(Clone)]
