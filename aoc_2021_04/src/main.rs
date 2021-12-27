@@ -20,18 +20,21 @@ fn main() {
     println!("Input filename: {}", filename);
 
     // get the contents of the file
-    let mut content: Vec<String> = file_input::file_contents_as_vec(filename)
+    let content: Vec<String> = file_input::file_contents_as_vec(filename)
         .expect("Failed to open input file");
 
     // We will need two structures, the list of drawn numbers and the 
     // vector of 5x5 boards. 
-    // 3D vector: [boards][rows][column[]
+    // 3D vector: [boards][rows][column]
     let mut boards: Vec<Vec<Vec<Number>>> = Vec::new();
+    boards.push(vec![]);
 
     let mut content_iter = content.iter();
     // get the first line of contents, since that will be our 
     // drawn number input
     let drawn_nums = content_iter.next();
+    //just advance past the first blank line
+    content_iter.next();
     // The rest of the lines will make up our grids
     let mut in_board:bool = true;
     let mut line_cnt = 0;
@@ -44,14 +47,14 @@ fn main() {
         // We have to detect when we enter a new boards "data".
         // We could probably detect this just looking for line number, but I'm 
         // instead just look for empty lines.
-        if line.len() >= 0 {
+        if !line.is_empty() {
             if in_board != true {
                 // add a new board (increase index, do I need to push to the vec first?)
                 boards.push(vec![]);
-                brd_ind += brd_ind;
+                brd_ind += 1;
             }
             // process the line to add to current board
-            let numbers:Vec<&str> = line.split(' ').collect();
+            let numbers:Vec<&str> = line.split_whitespace().collect();
             // convert numbers into a vector of Number types
             let numbers:Vec<Number> = numbers.iter()
                 .map( |x| {
@@ -68,6 +71,8 @@ fn main() {
             in_board = false;
         }
     }
+    // count number of boards I found
+    println!("Parsed input into {} boards of {} {}", boards.len(), boards[0].len(), boards[0][0].len() );
 
 
    // going to need to process the input numbers looking for matches
@@ -100,14 +105,50 @@ fn main() {
        // Spawn thread 
        // this is where we do most of the work here.
         let handle = thread::spawn( move || {
-          let mut run = true; 
-          let process_chunk = chunk.clone();
+          let mut process_chunk = chunk.clone();
+          let mut run = rx_run.recv().expect("unable to recieve initial run command");
           // loop until told to stop processing
           while run {
              let drawn_num = rx_proc_val.recv().expect("unable to recieve processing value");
              // do main process here
-             for board in process_chunk.iter() {
-                
+             for board in process_chunk.iter_mut() {
+                 // we are going to keep track of if each row or column is complete as we go.
+                 let mut column_completes = [true, true, true, true, true];
+                 let mut row_complete = true;
+                for r in 0..board.len() {
+                    // reset row_complete on new row
+                    row_complete = true;
+                    for c in 0..board[r].len() {
+                        if drawn_num == board[r][c].value {
+                            board[r][c].marked = true;
+                        }
+                        if board[r][c].marked == false {
+                            row_complete = false;
+                            column_completes[c] = false;
+                        }
+
+                    }
+                }
+                // Check after updating the board if we completed it
+                if row_complete == true || column_completes.contains(&true) {
+                    // calculate the result answer.
+                    let mut result = 0;
+                    // sum all unmarked cells in the board
+                    for row in board {
+                        for cell in row {
+                            if cell.marked == false {
+                                result += cell.value;
+                            }
+                        }
+                    }
+                    // multiply this result by the process number
+                    result = result * drawn_num;
+                    // send this to the main thread
+                    tx_result.send(result).expect("Failed to send result");
+                    // we were successfull, terminate thread
+                } else {
+                    tx_result.send(-1).expect("Failed to send result code");
+                }
              }
              run = rx_run.recv().expect("unable to recieve run command");
           }
@@ -121,6 +162,38 @@ fn main() {
         });
     }
 
+    // need to conver drawn numbers to i32s
+    let drawn_nums:Vec<&str> = drawn_nums.unwrap().split(',').collect();
+
+    let drawn_nums = drawn_nums.iter().map(|x| x.parse::<i32>().unwrap()).collect::<Vec<i32>>();
+
+    let mut result = 0;
+    '_numbers: for number in drawn_nums {
+        for thread in threads.iter() {
+            thread.proc_value.send(number).expect("Failed to send thread process number");
+            thread.process.send(true).expect("Failed to set the run flag");
+        }
+        // loop through checking for results from threads
+        for thread in threads.iter() {
+            let local_result = thread.result.recv().expect("Failed to read result");
+            
+            match local_result {
+                -1 => {},
+                i  => result = i,
+            };
+        }
+        if result != 0 {
+            // we must have found a result, stop threads and break out of loop
+            break '_numbers;
+        }
+    }
+
+    for thread in threads {
+        thread.process.send(false).expect("Failed to stop thread");
+        thread.handle.join().expect("Failed to join thread");
+    }
+    
+    println!("Finished, found number: {}", result);
 }
 
 struct Number {
