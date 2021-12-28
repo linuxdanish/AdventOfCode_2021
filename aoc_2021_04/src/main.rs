@@ -9,7 +9,7 @@ use std::env;
 use file_input;
 use std::thread;
 use std::sync::mpsc;
-use std::sync::Arc;
+use std::time::Duration;
 
 fn main() {
     // Take one commandline argument, the path to the file with the
@@ -85,7 +85,7 @@ fn main() {
     //  send the value to each thread. The thread will check for matches. 
     //  Should a match be found, it will check for bingo. Should bingo be 
     //  found, send result to main thread.
-    let concurrency = 6; 
+    let concurrency = 1;
     let mut threads: Vec<ThreadConnection> = Vec::new();
     
 
@@ -111,13 +111,13 @@ fn main() {
           while run {
              let drawn_num = rx_proc_val.recv().expect("unable to recieve processing value");
              // do main process here
-             for board in process_chunk.iter_mut() {
+             '_board: for board in process_chunk.iter_mut() {
                  // we are going to keep track of if each row or column is complete as we go.
                  let mut column_completes = [true, true, true, true, true];
-                 let mut row_complete = true;
+                 let mut full_row_complete = false;
                 for r in 0..board.len() {
                     // reset row_complete on new row
-                    row_complete = true;
+                    let mut row_complete = true;
                     for c in 0..board[r].len() {
                         if drawn_num == board[r][c].value {
                             board[r][c].marked = true;
@@ -128,9 +128,12 @@ fn main() {
                         }
 
                     }
+                    if row_complete== true {
+                        full_row_complete = row_complete;
+                    }
                 }
                 // Check after updating the board if we completed it
-                if row_complete == true || column_completes.contains(&true) {
+                if full_row_complete == true || column_completes.contains(&true) {
                     // calculate the result answer.
                     let mut result = 0;
                     // sum all unmarked cells in the board
@@ -146,6 +149,7 @@ fn main() {
                     // send this to the main thread
                     tx_result.send(result).expect("Failed to send result");
                     // we were successfull, terminate thread
+                    break '_board;
                 } else {
                     tx_result.send(-1).expect("Failed to send result code");
                 }
@@ -173,14 +177,23 @@ fn main() {
             thread.proc_value.send(number).expect("Failed to send thread process number");
             thread.process.send(true).expect("Failed to set the run flag");
         }
-        // loop through checking for results from threads
+        // loop through checking for results from threa
+        thread::sleep(Duration::from_secs(2));
         for thread in threads.iter() {
-            let local_result = thread.result.recv().expect("Failed to read result");
+                
+             let local_result = thread.result.recv().expect("Failed to read result");
+             //  if local_result >= 1 {
+                 //  result = local_result;
+                  // println!("result greater than 0");
+             //  }
+            //}
             
-            match local_result {
-                -1 => {},
-                i  => result = i,
-            };
+           match local_result {
+               -1 => {},
+               i  => result = i,
+           };
+
+            
         }
         if result != 0 {
             // we must have found a result, stop threads and break out of loop
