@@ -10,6 +10,7 @@ use file_input;
 use std::thread;
 use std::sync::mpsc;
 use std::time::Duration;
+use std::time::Instant;
 
 fn main() {
     // Take one commandline argument, the path to the file with the
@@ -18,7 +19,7 @@ fn main() {
     let filename = String::from(&args[1]);
     // for debug, list the input file name.
     println!("Input filename: {}", filename);
-
+    let now = Instant::now();
     // get the contents of the file
     let content: Vec<String> = file_input::file_contents_as_vec(filename)
         .expect("Failed to open input file");
@@ -199,6 +200,7 @@ fn main() {
         if thread_complete.len() >= threads.len() {
             // we must have found a result, stop threads and break out of loop
             println!("Result lengths {}", thread_complete.len());
+            println!("Completed: Calculation time: {}", now.elapsed().as_secs());
             break '_numbers;
         }
     }
@@ -207,7 +209,7 @@ fn main() {
         thread.process.send(false).expect("Failed to stop thread");
         thread.handle.join().expect("Failed to join thread");
     }
-
+    println!("Total run time {}", now.elapsed().as_secs());
     println!("Finished, First result: {}, last result {}", thread_complete[0], result);
 }
 
