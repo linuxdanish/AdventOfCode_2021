@@ -37,10 +37,7 @@ fn main() {
     content_iter.next();
     // The rest of the lines will make up our grids
     let mut in_board:bool = true;
-    let mut line_cnt = 0;
     let mut brd_ind = 0;
-    let mut row_ind = 0;
-    let mut clmn_ind = 0;
 
     // process content into boards
     for line in content_iter {
