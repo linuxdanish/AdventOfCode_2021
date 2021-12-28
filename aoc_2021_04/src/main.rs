@@ -159,7 +159,8 @@ fn main() {
             handle: handle,
             proc_value: tx_proc_val,
             result: rx_result,
-            process: tx_run
+            process: tx_run,
+            complete: false
         });
     }
 
@@ -169,31 +170,35 @@ fn main() {
     let drawn_nums = drawn_nums.iter().map(|x| x.parse::<i32>().unwrap()).collect::<Vec<i32>>();
 
     let mut result = 0;
+    let mut thread_complete: Vec<i32> = Vec::new();
     '_numbers: for number in drawn_nums {
         for thread in threads.iter() {
-            thread.proc_value.send(number).expect("Failed to send thread process number");
-            thread.process.send(true).expect("Failed to set the run flag");
+            if thread.complete == false {
+                thread.proc_value.send(number).expect("Failed to send thread process number");
+                thread.process.send(true).expect("Failed to set the run flag");
+            }
+
         }
         // loop through checking for results from threa
         thread::sleep(Duration::from_secs(2));
-        for thread in threads.iter() {
-                
-             let local_result = thread.result.recv().expect("Failed to read result");
-             //  if local_result >= 1 {
-                 //  result = local_result;
-                  // println!("result greater than 0");
-             //  }
-            //}
-            
-           match local_result {
-               -1 => {},
-               i  => result = i,
-           };
+        for thread in threads.iter_mut() {
+            if thread.complete == false {
+                let local_result = thread.result.recv().expect("Failed to read result");
+               
+                match local_result {
+                  -1 => {},
+                  i  => {
+                      result = i;
+                      thread_complete.push(result);
+                      thread.complete = true;
+                  },
+                };
 
-            
+            }
         }
-        if result != 0 {
+        if thread_complete.len() >= threads.len() {
             // we must have found a result, stop threads and break out of loop
+            println!("Result lengths {}", thread_complete.len());
             break '_numbers;
         }
     }
@@ -202,8 +207,8 @@ fn main() {
         thread.process.send(false).expect("Failed to stop thread");
         thread.handle.join().expect("Failed to join thread");
     }
-    
-    println!("Finished, found number: {}", result);
+
+    println!("Finished, First result: {}, last result {}", thread_complete[0], result);
 }
 
 struct Number {
@@ -224,7 +229,8 @@ struct ThreadConnection {
     handle: thread::JoinHandle<()>,
     proc_value: mpsc::Sender<i32>,
     result: mpsc::Receiver<i32>,
-    process: mpsc::Sender<bool>
+    process: mpsc::Sender<bool>,
+    complete: bool
 }
 
 
